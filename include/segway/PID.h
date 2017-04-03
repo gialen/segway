@@ -15,6 +15,7 @@
 #include <qb_interface/cubePos.h>
 
 # define PI 3.1416
+# define PI2 6.2832
 
 
 class PID
@@ -27,7 +28,7 @@ public:
   void run();
   // Eigen::Quaterniond madgwick_kin(Eigen::Vector3d acc, Eigen::Vector3d gyro, Eigen::Quaterniond q_old, double State_joint_prev, Eigen::Vector3d Joint_prev, double State_joint_nxt, Eigen::Vector3d Joint_nxt);
 
-
+  double dt;
 
 
 
@@ -39,21 +40,23 @@ private:
   void callback_corr(const qb_interface::cubeCurrent::ConstPtr& msg);
   void callback_meas(const qb_interface::cubePos::ConstPtr& msg);
 
-  void callback_gain_PID1(const geometry_msgs::Vector3::ConstPtr& msg);
+  void callback_gain_PID_v(const geometry_msgs::Vector3::ConstPtr& msg);
   // void callback_imu_acc(const qb_interface::inertialSensorArray::ConstPtr& msg);
   // void callback_imu_gyro(const qb_interface::inertialSensorArray::ConstPtr& msg);
   int sgn(double d);
+  double unwrap(double previousAngle,double newAngle);
+  double angleDiff(double a,double b);
 
-  ros::Subscriber sub_gyro_, sub_euler_, sub_gain_;
-  ros::Publisher pub_comm_, pub_to_matlab;
+  ros::Subscriber sub_gyro_, sub_euler_, sub_gain_, sub_gain_v_;
+  ros::Publisher pub_comm_, pub_to_matlab, pub_vel_;
   ros::Subscriber sub_corr, sub_enc;
   geometry_msgs::Vector3 to_matlab;
 
   Eigen::Vector3d gyro_, euler_;
-  double kp_, kd_, ki_;
-  double PD, P, D, I;
+  double kp_, kd_, ki_, kp_v_, kd_v_, ki_v_;
+  double Pid, P, D, I, P_v, I_v,D_v, PI_v, PI_v_old ;
   double int1, int2;
-  double enc1_, enc2_, enc1_old_, enc2_old_, enc1_of_, enc2_of_;
+  double enc1_, enc2_, enc1_old_, enc2_old_, enc1_of_, enc2_of_, vel1_old_, vel2_old_, vel_old_;
   bool flag_run1_, flag_run2_, flag_run3_;
   ros::NodeHandle n_;
 

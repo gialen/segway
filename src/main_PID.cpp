@@ -16,7 +16,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
 
   PID Obj;
-
+  Obj.dt = 1 / rateHZ;
   ros::Rate r(rateHZ);
 
 

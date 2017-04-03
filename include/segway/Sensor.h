@@ -1,5 +1,4 @@
 #include <ros/ros.h>
-#include <ros_myo/EmgArray.h>
 #include <std_msgs/Int16.h>
 #include <std_msgs/Empty.h>
 #include <sensor_msgs/Imu.h>
@@ -9,6 +8,7 @@
 // ROS cuustom msg
 #include <qb_interface/inertialSensor.h>
 #include <qb_interface/inertialSensorArray.h>
+// #include <qb_interface/cubeRef.h>
 
 # define PI 3.14159
 
@@ -36,7 +36,7 @@ private:
   void offset_gyro(Eigen::Vector3d gyro1, Eigen::Vector3d gyro2);
 
   ros::Subscriber sub_imu_acc_, sub_imu_gyro_;
-  ros::Publisher pub_gyro_, pub_acc_, pub_q_est_;
+  ros::Publisher pub_gyro_, pub_acc_, pub_q_est_, pub_euler_;
 
   Eigen::Vector3d acc_1_, gyro_1_;
   Eigen::Vector3d acc_2_, gyro_2_;

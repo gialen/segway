@@ -6,6 +6,8 @@ Sensor::Sensor()
     pub_gyro_ = n_.advertise<geometry_msgs::Vector3>("gyro_good", 10);
     pub_acc_ = n_.advertise<geometry_msgs::Vector3>("acc_good", 10);
     pub_q_est_= n_.advertise<geometry_msgs::Quaternion>("q_est", 10);
+    pub_euler_ = n_.advertise<geometry_msgs::Vector3>("RPY", 10);
+    // pub_comm_ = n_.advertise<qb_interface::cubeRef>("qb_class/cube_ref", 10);
 
 	//Topic you want to subscribe
     sub_imu_acc_ = n_.subscribe("/qb_class_imu/acc", 10, &Sensor::callback_imu_acc, this);
@@ -20,7 +22,7 @@ Sensor::Sensor()
     flag_offset_ = true;
 
     q_old_.w() = 1.0; 
-    q_old_.vec() << 0.0, 0.0, 0.0;  
+    q_old_.vec() << 0, 0.0, 0.0;  
 	
 
 }
@@ -146,17 +148,18 @@ void Sensor::offset_gyro(Eigen::Vector3d gyro1, Eigen::Vector3d gyro2)
 
 void Sensor::run()
 {
-	double Beta = 0.035;
+	double Beta = 0.03; //035 più basso è più mi fido del gyro
 	int i;
-	double tr_g = 4.0;
+	double tr_g = 1.5;
 	double tr_a = 0.1;
-	geometry_msgs::Vector3 gyro_g_pub, acc_g_pub;
+
+	geometry_msgs::Vector3 gyro_g_pub, acc_g_pub, euler_pub;
 	Eigen::Vector3d diff_g, diff_a;
 
 	//sono i gyro senza offset
-	Eigen::Vector3d gyro_1_0, gyro_2_0, gyro_g;
+	Eigen::Vector3d gyro_1_0, gyro_2_0;
 
-	Eigen::Vector3d acc_g;
+	Eigen::Vector3d acc_g, gyro_g;
 	Eigen::Vector3d Acc_earth(0.0, 0.0, 1.0);
 	Eigen::VectorXd F_partial(3);
 	Eigen::MatrixXd J_partial(3, 4);
@@ -168,6 +171,7 @@ void Sensor::run()
 	Eigen::Quaterniond q_est;
 	Eigen::Quaterniond qDot;
 	Eigen::Quaterniond gyro_q;
+	Eigen::Vector3d euler;
 
 
 	if(flag_offset_)
@@ -205,7 +209,8 @@ void Sensor::run()
 		{
 			if(diff_a(i) < tr_a)
 			{
-				acc_g(i) = (acc_1_(i) + acc_2_(i)) / 2;
+				acc_g(i) = acc_1_(i);
+				// acc_g(i) = (acc_1_(i) + acc_2_(i)) / 2;
 				acc_old_(i) =  acc_g(i);
 			}
 			else
@@ -217,6 +222,14 @@ void Sensor::run()
 
 		//Normalizzazione acc
 		acc_g = acc_g / acc_g.norm();
+
+		// for(i = 0; i < 3; i++)
+		// {
+		// 	if(abs(gyro_g(i)) < 0.001)
+		// 	{
+		// 		gyro_g(i) = 0;	
+		// 	}
+		// }
 
 
 
@@ -282,6 +295,12 @@ void Sensor::run()
 
 		q_old_ = q_est;
 
+		// Eigen::Vector3d euler = q_est.toRotationMatrix().eulerAngles(0, 2, 1);
+		euler (1) = asin(2 * (q_est.w() * q_est.y()) - (q_est.x() * q_est.z()));
+  		euler (0) = 0.0;
+  		euler (2) = 0.0;
+
+
 
 
 
@@ -309,205 +328,14 @@ void Sensor::run()
 
 		pub_q_est_.publish(q_est_pub_);
 
+		euler_pub.x = euler(0);
+		euler_pub.y = euler(1);
+		euler_pub.z = euler(2);
+
+		pub_euler_.publish(euler_pub);
+
 
 
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Eigen::Quaterniond Extended_Madgw::madgwick_kin(Eigen::Vector3d acc, Eigen::Vector3d gyro, Eigen::Quaterniond q_old_, double State_joint_prev, Eigen::Vector3d Joint_prev, double State_joint_nxt, Eigen::Vector3d Joint_nxt)
-// {
-
-// 	double Beta = 0.035;
-// 	int i;
-
-// 	Eigen::VectorXd F(4);
-// 	Eigen::MatrixXd J(4, 4);
-// 	Eigen::VectorXd F_partial(3);
-// 	Eigen::MatrixXd J_partial(3, 4);
-// 	Eigen::Vector3d Acc_earth(0.0, 0.0, 1.0);
-// 	Eigen::Vector3d kinect_vect;
-// 	Eigen::VectorXd step_(4);
-// 	Eigen::Quaterniond q_step;
-// 	Eigen::Quaterniond qDot;
-// 	Eigen::Quaterniond gyro_q;
-// 	Eigen::Quaterniond q_ang_rate;
-// 	Eigen::Quaterniond q_nabla;
-// 	Eigen::Quaterniond q_integr;
-// 	Eigen::Quaterniond q_est;
-	
-
-// 	//Normalizzazione acc
-// 	acc = acc / acc.norm();
-
-// 	for(i = 0; i < 3; i++)
-// 	{
-// 		if(abs(gyro(i)) < 5)
-// 		{
-// 			gyro(i) = 0;	
-// 		}
-// 	}
-// 	// std::cout<<gyro(0)<<" "<<gyro(1)<<" "<<gyro(2)<<std::endl;
-	
-// 	//gradi to rad al sec
-// 	gyro = gyro * (PI / 180);
-// 	gyro_q.w() = 0;
-// 	gyro_q.vec() = gyro;
-
-// 	///////////////////////////////
-// 	double q1 = q_old_.w();
-// 	double q2 = q_old.x();
-// 	double q3 = q_old.y();
-// 	double q4 = q_old.z();
-
-// 	double d1x = Acc_earth(0);
-// 	double d1y = Acc_earth(1);
-// 	double d1z = Acc_earth(2);
-
-// 	double s1x = acc(0);
-// 	double s1y = acc(1);
-// 	double s1z = acc(2);
-	
-// 	// ROS_INFO("I heard: [%f]", acc(0));
-
-// 	if (State_joint_nxt == 2 && State_joint_prev == 2)
-// 	{
-// 		// kinect vector
-// 		kinect_vect = (Joint_nxt - Joint_prev) / (Joint_nxt - Joint_prev).norm();
-
-// 		// 
-// 		double d2x = kinect_vect(0);
-// 		double d2y = kinect_vect(1);
-// 		double d2z = kinect_vect(2);
-
-
-// 		F <<	2*d1x*(0.5 - q3*q3 - q4*q4) + 2*d1y*(q1*q4 + q2*q3) + 2*d1z*(q2*q4 - q1*q3) - s1x, 
-// 				2*d1x*(q2*q3 - q1*q4) + 2*d1y*(0.5 - q2*q2 - q4*q4) + 2*d1z*(q1*q2 + q3*q4) - s1y,
-// 				2*d1x*(q1*q3 - q2*q4) + 2*d1y*(q3*q4 - q1*q2) + 2*d1z*(0.5 - q2*q2 - q3*q3) - s1z,
-// 			  // - q1*q1 - q2*q2 + q3*q3 + q4*q4 - d2x; 
-// 			  - 2*q1*q4 - 2*q2*q3 - d2y;
-// 				//2*q1*q3 - 2*q2*q4 - d2z;
-
-		
-
-// 		J <<  2*d1y*q4-2*d1z*q3  ,   2*d1y*q3+2*d1z*q4             ,     -4*d1x*q3+2*d1y*q2-2*d1z*q1      ,      -4*d1x*q4+2*d1y*q1+2*d1z*q2,  
-// 	    	 -2*d1x*q4+2*d1z*q2  ,   2*d1x*q3-4*d1y*q2+2*d1z*q1    ,      2*d1x*q2+2*d1z*q4               ,      -2*d1x*q1-4*d1y*q4+2*d1z*q3,
-// 	      	  2*d1x*q3-2*d1y*q2  ,   2*d1x*q4-2*d1y*q1-4*d1z*q2    ,      2*d1x*q1+2*d1y*q4-4*d1z*q3      ,                2*d1x*q2+2*d1y*q3,
-// 	                      // -2*q1  ,                        -2*q2    ,                            2*q3      ,                             2*q4;
-// 	                      -2*q4  ,                        -2*q3    ,                           -2*q2      ,                            -2*q1;
-// 	                     //  2*q3  ,                        -2*q4    ,                            2*q1      ,                            -2*q2;
-
-// 		step = J.transpose() * F;
-// 	}
-// 	else
-// 	{
-// 		F_partial <<	2*d1x*(0.5 - q3*q3 - q4*q4) + 2*d1y*(q1*q4 + q2*q3) + 2*d1z*(q2*q4 - q1*q3) - s1x, 
-// 				2*d1x*(q2*q3 - q1*q4) + 2*d1y*(0.5 - q2*q2 - q4*q4) + 2*d1z*(q1*q2 + q3*q4) - s1y,
-// 				2*d1x*(q1*q3 - q2*q4) + 2*d1y*(q3*q4 - q1*q2) + 2*d1z*(0.5 - q2*q2 - q3*q3) - s1z;
-		
-
-// 		J_partial <<  2*d1y*q4-2*d1z*q3  ,   2*d1y*q3+2*d1z*q4             ,     -4*d1x*q3+2*d1y*q2-2*d1z*q1      ,      -4*d1x*q4+2*d1y*q1+2*d1z*q2,  
-// 	    	         -2*d1x*q4+2*d1z*q2  ,   2*d1x*q3-4*d1y*q2+2*d1z*q1    ,      2*d1x*q2+2*d1z*q4               ,      -2*d1x*q1-4*d1y*q4+2*d1z*q3,
-// 	      	          2*d1x*q3-2*d1y*q2  ,   2*d1x*q4-2*d1y*q1-4*d1z*q2    ,      2*d1x*q1+2*d1y*q4-4*d1z*q3      ,                2*d1x*q2+2*d1y*q3;
-	      
-// 	    step = J_partial.transpose() * F_partial;               
-// 	}
-
-
-// 	step = step / step.norm();
-
-// 	q_step.w() = step(0);
-// 	q_step.x() = step(1);
-// 	q_step.y() = step(2);
-// 	q_step.z() = step(3);
-
-// 	q_ang_rate = (q_old * gyro_q);
-// 	q_ang_rate.w() = 0.5 * q_ang_rate.w();
-// 	q_ang_rate.vec() = 0.5 * q_ang_rate.vec();
-
-// 	q_nabla.w() = Beta * q_step.w();
-// 	q_nabla.vec() = Beta * q_step.vec();
-
-// 	//calcolo di qDot
-// 	qDot.w() = q_ang_rate.w() - q_nabla.w();
-// 	qDot.vec() = q_ang_rate.vec() - q_nabla.vec();
-
-// 	///////////////////////////////////////
-// 	q_integr.w() = qDot.w() * dt;
-// 	q_integr.vec() = qDot.vec() * dt;
-
-// 	q_est.w() = q_old.w() + q_integr.w();
-// 	q_est.vec() = q_old.vec() + q_integr.vec();
-
-
-// 	q_est.normalize();
-
-// 	return q_est;
-// }
-
-
-
-// void Extended_Madgw::run()
-// {
-	
-
-// 	if(flag_run1_ && flag_run2_ && flag_run3_ && flag_run4_ && flag_run5_ && flag_run6_ && flag_run7_ && flag_disc_)
-// 	{
-
-// 		q_est_1_ = madgwick_kin(acc_1_, gyro_1_, q_old_1_, shoulder_(0), shoulder_.tail<3>() , elbow_(0), elbow_.tail<3>());
-// 		q_est_2_ = madgwick_kin(acc_2_, gyro_2_, q_old_2_, elbow_(0), elbow_.tail<3>() , wrist_(0), wrist_.tail<3>());
-// 		q_est_3_ = madgwick_kin(acc_3_, gyro_3_, q_old_3_, wrist_(0), wrist_.tail<3>() , palm_(0), palm_.tail<3>());
-// 		q_old_1_ = q_est_1_;
-// 		q_old_2_ = q_est_2_;
-// 		q_old_3_ = q_est_3_;
-
-// 		q_1Link_.w = q_est_1_.w();
-// 		q_1Link_.x = q_est_1_.x();
-// 		q_1Link_.y = q_est_1_.y();
-// 		q_1Link_.z = q_est_1_.z();
-
-// 		q_2Link_.w = q_est_2_.w();
-// 		q_2Link_.x = q_est_2_.x();
-// 		q_2Link_.y = q_est_2_.y();
-// 		q_2Link_.z = q_est_2_.z();
-
-// 		q_3Link_.w = q_est_3_.w();
-// 		q_3Link_.x = q_est_3_.x();
-// 		q_3Link_.y = q_est_3_.y();
-// 		q_3Link_.z = q_est_3_.z();
-
-// 		pub_1_.publish(q_1Link_);
-// 		pub_2_.publish(q_2Link_);
-// 		pub_3_.publish(q_3Link_);
-// 	}
-
-// 	if(!flag_disc_)
-// 	{
-// 		pub_flag_disc_.publish(empty);
-// 	}
-// 	std::cout<< flag_run1_<<" "<< flag_run2_<<" "<< flag_run3_<<" "<< flag_run4_<<" "<< flag_run5_<<" "<< flag_run6_<<" "<< flag_run7_<<" " <<std::endl;
-// }

@@ -160,6 +160,14 @@ add_executable(PID_node src/main_PID.cpp src/PID.cpp )
 add_dependencies(PID_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(PID_node ${catkin_LIBRARIES})
 
+
+add_executable(lqr_node src/main_lqr.cpp src/lqr.cpp )
+add_dependencies(lqr_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(lqr_node ${catkin_LIBRARIES})
+
+add_executable(lqr_PID_node src/main_lqr_PID.cpp src/lqr_PID.cpp )
+add_dependencies(lqr_PID_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(lqr_PID_node ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############

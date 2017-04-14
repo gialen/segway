@@ -62,7 +62,7 @@ private:
 
 
   Eigen::Vector3d gyro_, euler_;
-  double kp_, kd_, ki_, kp_v_, kd_v_, ki_v_, kp_w_, kd_w_, ki_w_, prova_;
+  double kp_, kd_, ki_, kp_v_, kd_v_, ki_v_, kp_w_, kd_w_, ki_w_;
   double Pid, P, D, I, P_v, I_v,D_v, PID_v, PID_v_old, PID_w, P_w, I_w,D_w;
   double vel_rif_, w_rif_, pos_rif_, yaw_rif_;
   double enc1_, enc2_, enc1_old_, enc2_old_, enc1_of_, enc2_of_, vel1_old_, vel2_old_, vel_old_, w_old_;

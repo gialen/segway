@@ -19,11 +19,11 @@
 # define PI2 6.2832
 
 
-class PID
+class lqr
 {
 public:
-  PID();
-  ~PID();
+  lqr();
+  ~lqr();
 
 
   void run();
@@ -37,15 +37,15 @@ private:
 
   void callback_gyro(const geometry_msgs::Vector3::ConstPtr& msg);
   void callback_imu_euler(const geometry_msgs::Vector3::ConstPtr& msg);
-  void callback_gain_PID(const geometry_msgs::Vector3::ConstPtr& msg);
-  void callback_corr(const qb_interface::cubeCurrent::ConstPtr& msg);
+  // void callback_gain_PID(const geometry_msgs::Vector3::ConstPtr& msg);
+  // void callback_corr(const qb_interface::cubeCurrent::ConstPtr& msg);
   void callback_meas(const qb_interface::cubePos::ConstPtr& msg);
 
-  void callback_gain_PID_v(const geometry_msgs::Vector3::ConstPtr& msg);
+  // void callback_gain_PID_v(const geometry_msgs::Vector3::ConstPtr& msg);
   void callback_comm(const geometry_msgs::Vector3::ConstPtr& msg);
-  void callback_gain_PID_w(const geometry_msgs::Vector3::ConstPtr& msg);
-  void callback_cube(const geometry_msgs::Vector3::ConstPtr& msg);
-  void callback_myo(const sensor_msgs::Imu::ConstPtr& msg);
+  // void callback_gain_PID_w(const geometry_msgs::Vector3::ConstPtr& msg);
+  // void callback_cube(const geometry_msgs::Vector3::ConstPtr& msg);
+  // void callback_myo(const sensor_msgs::Imu::ConstPtr& msg);
 
   // void callback_imu_acc(const qb_interface::inertialSensorArray::ConstPtr& msg);
   // void callback_imu_gyro(const qb_interface::inertialSensorArray::ConstPtr& msg);
@@ -62,12 +62,12 @@ private:
 
 
   Eigen::Vector3d gyro_, euler_;
-  double kp_, kd_, ki_, kp_v_, kd_v_, ki_v_, kp_w_, kd_w_, ki_w_, prova_;
-  double Pid, P, D, I, P_v, I_v,D_v, PID_v, PID_v_old, PID_w, P_w, I_w,D_w;
+  // double kp_, kd_, ki_, kp_v_, kd_v_, ki_v_, kp_w_, kd_w_, ki_w_;
+  // double Pid, P, D, I, P_v, I_v,D_v, PID_v, PID_v_old, PID_w, P_w, I_w,D_w;
   double vel_rif_, w_rif_, pos_rif_, yaw_rif_;
   double enc1_, enc2_, enc1_old_, enc2_old_, enc1_of_, enc2_of_, vel1_old_, vel2_old_, vel_old_, w_old_;
   bool flag_run1_, flag_run2_, flag_run3_;
   double th_eq_, th_pr_, m1_cube_, m2_cube_, encL_cube_;
   ros::NodeHandle n_;
-
+  double com_R, com_L;
 };//End of class SubscribeAndPublish

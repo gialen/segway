@@ -145,7 +145,7 @@ void PID::callback_myo(const sensor_msgs::Imu::ConstPtr& msg)
 
 void PID::run()
 {
-	double th = 30.0;
+	double th = 25.0;
 	double raggio = 0.12;
 	double lunghezza = 0.28;
 	double offset_pitch =  0.0;//0.0375;
@@ -153,9 +153,8 @@ void PID::run()
 	double enc1_g, enc2_g, vel1_enc, vel2_enc, vel1, vel2, vel, pos1, pos2, pos, a, w, yaw;
 	geometry_msgs::Vector3 vel_pub;
 
-	double PID_v_der, vel_der, w_der, pos_pid_v;
+	double PID_v_der, vel_der, w_der;
 	double com_R, com_L;
-
 	
 	// offset_pitch = atan2(((0.09*0.380*sin(encL_cube_))/(0.790+0.380+0.380)),(((0.1*0.380)+((0.09*cos(encL_cube_)+0.1)*0.380))/(0.790+0.380+0.380)));
 
@@ -220,18 +219,13 @@ void PID::run()
 		w_old_ = w; 
 
 		pos_rif_ += vel_rif_ * dt;
-
-	
 		//controllo doppio loop
 		P_v = kp_v_ * (vel_rif_ - vel);
 		I_v = ki_v_ * (pos_rif_ - pos);
 		D_v = kd_v_ * (-vel_der);
+		// D_v += kd_v_ * (pos_rif_ - pos)/ dt;
 
-		
-
-		// prova_ += kd_v_ * (pos_rif_ - pos) * dt;
-
-		PID_v = P_v + I_v + D_v ;
+		PID_v = P_v + I_v + D_v;
 
 		PID_v_der = (PID_v - PID_v_old)/dt;
 		PID_v_old = PID_v;
@@ -242,12 +236,8 @@ void PID::run()
 			P = th * sgn(P);
 		}
 
-		I += ki_ *(PID_v - euler_(1) - offset_pitch) / 200;
-
-		if((I * sgn(I)) >=100)
-		{
-			I = 100 * sgn(I);
-		}
+		// I += ki_ *(PID_v - euler_(1) - offset_pitch) / 200;
+		I = ki_*((vel1 + vel2)/2);
 
 
 		D = kd_ * (PID_v_der-gyro_(1));
@@ -320,16 +310,16 @@ void PID::run()
 		comm_pub_.p_1.push_back(com_R);
 		comm_pub_.p_2.push_back(com_L);
 		//comando cubo
-		comm_pub_.p_1.push_back(m1_cube_);
-		comm_pub_.p_2.push_back(m2_cube_);
+		// comm_pub_.p_1.push_back(m1_cube_);
+		// comm_pub_.p_2.push_back(m2_cube_);
 
 
 		pub_comm_.publish(comm_pub_);
 
-		// vel_pub.x = offset_pitch;
-		// vel_pub.y = th_pr_;
+		vel_pub.x = vel1;
+		vel_pub.y = vel2;
 
-		// pub_vel_.publish(vel_pub);
+		pub_vel_.publish(vel_pub);
 		// std::cout<<"P:"<< P<<" "<<"I:"<< I<< " "<<"D:"<< D<< std::endl;
 		// std::cout<<"enc1_:"<< enc1_g<<"   "<<"enc2_:"<< enc2_g<< std::endl;
 

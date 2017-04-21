@@ -145,7 +145,7 @@ void PID::callback_myo(const sensor_msgs::Imu::ConstPtr& msg)
 
 void PID::run()
 {
-	double th = 25.0;
+	double th = 31.0;
 	double raggio = 0.12;
 	double lunghezza = 0.28;
 	double offset_pitch =  0.0;//0.0375;
@@ -155,6 +155,18 @@ void PID::run()
 
 	double PID_v_der, vel_der, w_der;
 	double com_R, com_L;
+
+	Eigen::MatrixXd k(2,6);
+	Eigen::MatrixXd command(2,1);
+	Eigen::MatrixXd state(6,1);
+
+	// k << 0.0, -10.0, -3720.5, -4517.6,
+	// 	-10.0, 0.0, -3720.5, -4517.6;
+	k << 0.0, -10.0,-1.5, -15.6, -735.0, -90.8,
+		-10.0, 0.0,-15.6, -1.5, -735.0, -90.8;
+		// k << 0.0, -3.0,-0.5, -14.6, -671.0, -99.8,
+		// -3.0, 0.0,-14.6, -0.5, -671.0, -99.8;
+
 	
 	// offset_pitch = atan2(((0.09*0.380*sin(encL_cube_))/(0.790+0.380+0.380)),(((0.1*0.380)+((0.09*cos(encL_cube_)+0.1)*0.380))/(0.790+0.380+0.380)));
 
@@ -230,28 +242,30 @@ void PID::run()
 		PID_v_der = (PID_v - PID_v_old)/dt;
 		PID_v_old = PID_v;
 
-		P = kp_ * (PID_v - euler_(1) - offset_pitch);
-		if((P * sgn(P)) <= th)
-		{
-			P = th * sgn(P);
-		}
+		// P = kp_ * (PID_v - euler_(1) - offset_pitch);
+		// if((P * sgn(P)) <= th)
+		// {
+		// 	P = th * sgn(P);
+		// }
 
-		// I += ki_ *(PID_v - euler_(1) - offset_pitch) / 200;
-		I = ki_*((vel1 + vel2)/2);
-
-
-		D = kd_ * (PID_v_der-gyro_(1));
-
-		Pid = P + I + D;
+		// // I += ki_ *(PID_v - euler_(1) - offset_pitch) / 200;
+		// I = ki_*((vel1 + vel2)/2);
 
 
-		yaw_rif_ += w_rif_ * dt;
-		//controllo imbarbdata
-		P_w = kp_w_ * (w_rif_ - w);
-		I_w = ki_w_ * (yaw_rif_ - yaw);
-		D_w = kd_w_ * (-w_der);
+		// D = kd_ * (PID_v_der-gyro_(1));
 
-		PID_w = P_w + I_w + D_w;
+		// Pid = P + I + D;
+
+
+		// yaw_rif_ += w_rif_ * dt;
+		// //controllo imbarbdata
+		// P_w = kp_w_ * (w_rif_ - w);
+		// I_w = ki_w_ * (yaw_rif_ - yaw);
+		// D_w = kd_w_ * (-w_der);
+
+		// PID_w = P_w + I_w + D_w;
+		state << -pos1, -pos2, -vel1, -vel2, PID_v - euler_(1), PID_v_der-gyro_(1);
+		command = k * state;
 
 
 
@@ -270,8 +284,19 @@ void PID::run()
 		// Pid = P + I + D;
 
 		// non combacia con  l'articolo perchè i motori hanno direzioni differenti
-		com_R = Pid + PID_w;
-		com_L = -Pid + PID_w;
+
+		// if((command(0,0) * sgn(command(0,0))) <= th)
+		// {
+		// 	command(0,0) = th * sgn(command(0,0));
+		// }
+
+		// if((command(1,0) * sgn(command(1,0))) <= th)
+		// {
+		// 	command(1,0) = th * sgn(command(1,0));
+		// }
+
+		com_R = command(0,0) + PID_w;
+		com_L = -command(1,0) + PID_w;
 		
 		
 

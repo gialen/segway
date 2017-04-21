@@ -68,6 +68,7 @@ private:
   double enc1_, enc2_, enc1_old_, enc2_old_, enc1_of_, enc2_of_, vel1_old_, vel2_old_, vel_old_, w_old_;
   bool flag_run1_, flag_run2_, flag_run3_;
   double th_eq_, th_pr_, m1_cube_, m2_cube_, encL_cube_;
+  double th_eq1_, th_pr1_, m1_cube1_, m2_cube1_, encL_cube1_;
   ros::NodeHandle n_;
 
 };//End of class SubscribeAndPublish

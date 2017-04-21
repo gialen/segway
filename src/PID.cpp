@@ -33,7 +33,15 @@ PID::PID()
     kp_v_ = kd_v_ = ki_v_ = 0.0;
     kp_w_ = kd_w_ = ki_w_ = 0.0;
     th_eq_ = 0.0;
-    th_pr_ = 0.6 * (65536 /(4 * PI));
+    th_pr_ = 0.2 * (65536 /(4 * PI));
+
+    th_eq1_ = 0.0;
+    th_pr1_ = 0.2 * (65536 /(4 * PI));
+
+    vel_rif_= w_rif_= pos_rif_= yaw_rif_=0;
+    kp_= kd_= ki_= kp_v_= kd_v_= ki_v_= kp_w_= kd_w_= ki_w_=0;
+    Pid= P= D= I= P_v= I_v=D_v= PID_v= PID_v_old= PID_w= P_w= I_w=D_w=0;
+    enc1_= enc2_= enc1_old_= enc2_old_= enc1_of_= enc2_of_= vel1_old_= vel2_old_= vel_old_= w_old_=0;
 
     // gyro_ = Eigen::Vector3d::Zero();
     // euler_ = Eigen::Vector3d::Zero();
@@ -52,15 +60,20 @@ PID::~PID()
 //tutte le acc provenienti dalle imu (NON MYO)
 void PID::callback_gyro(const geometry_msgs::Vector3::ConstPtr& msg)
 {
-  	gyro_ << msg->x, msg->y, msg->z;
-  	flag_run1_ = true;
+
+	  	gyro_ << msg->x, msg->y, msg->z;
+	  	flag_run1_ = true;
+
 
 }
 
 void PID::callback_imu_euler(const geometry_msgs::Vector3::ConstPtr& msg)
 {
-  	euler_ << msg->x, msg->y, msg->z;
-  	flag_run2_ = true;
+
+		euler_ << msg->x, msg->y, msg->z;
+  		flag_run2_ = true;
+
+  	
 
 }
 
@@ -88,23 +101,32 @@ void PID::callback_meas(const qb_interface::cubePos::ConstPtr& msg)
 	// to_matlab.y = msg->p_1[0];
 	if(!flag_run3_)
 	{
-		enc1_ = -msg->p_1[0] * 4.0 * PI / 65536;
-		enc2_ = -msg->p_2[0] * 4.0 * PI / 65536;
-		enc1_of_ = enc1_;
-		enc2_of_ = enc2_;
-		// enc1_old_ = enc1_;
-		// enc2_old_ = enc2_;
-		enc1_ = 0;
-		enc2_ = 0;
+		if(!isnan(msg->p_1[0]) && !isnan(msg->p_1[0]))
+		{
+			enc1_ = -msg->p_1[0] * 4.0 * PI / 65536;
+			enc2_ = -msg->p_2[0] * 4.0 * PI / 65536;
+			enc1_of_ = enc1_;
+			enc2_of_ = enc2_;
+			// enc1_old_ = enc1_;
+			// enc2_old_ = enc2_;
+			enc1_ = 0;
+			enc2_ = 0;
+			
+			flag_run3_ = true;
+		}
 		
-		flag_run3_ = true;
 	}
-	enc1_ = -msg->p_1[0] * 4.0 * PI / 65536  - enc1_of_;
-	enc2_ = -msg->p_2[0] * 4.0 * PI / 65536  - enc2_of_;
+	if(!isnan(msg->p_1[0]) && !isnan(msg->p_1[0]))
+	{
+		enc1_ = -msg->p_1[0] * 4.0 * PI / 65536  - enc1_of_;
+		enc2_ = -msg->p_2[0] * 4.0 * PI / 65536  - enc2_of_;
+	}
 
 
-	
-	encL_cube_ = msg->p_L[1] * 4.0 * PI / 65536;
+	// if(!isnan(msg->p_L[1]))
+	// {
+	// 	encL_cube_ = msg->p_L[1] * 4.0 * PI / 65536;
+	// }
 	
 	
 	
@@ -140,6 +162,9 @@ void PID::callback_myo(const sensor_msgs::Imu::ConstPtr& msg)
 	q_myo_.z = msg->orientation.z;
 
 	th_eq_ = asin(2 * (q_myo_.w * q_myo_.y - (q_myo_.x * q_myo_.z))) * (65536 /(4 * PI));
+	th_eq1_ = atan2(2.0*(q_myo_.x*q_myo_.w + q_myo_.y*q_myo_.z), 1 - 2 * (q_myo_.y*q_myo_.y + q_myo_.z*q_myo_.z))* (65536 /(4 * PI));
+
+
 }
 
 
@@ -155,7 +180,16 @@ void PID::run()
 
 	double PID_v_der, vel_der, w_der, pos_pid_v;
 	double com_R, com_L;
+	double ob = 0.03;
+	double oc = ob + 0.01 + 0.04;
+	double od  = ob + 0.1 + 0.12;
+	
 
+
+
+
+	// offset_pitch = atan2(((-ob*sin(euler_(1))*0.45) - (oc * sin(euler_(1)*0.2)) - (od * sin(euler_(1) * 0.380)) - (od * sin(euler_(1)) + 0.09 * sin(encL_cube_)) * 0.380)/(2.4),((ob*cos(euler_(1))*0.45) + (oc * cos(euler_(1)*0.2)) + (od * cos(euler_(1) * 0.380)) + (od * cos(euler_(1)) + 0.09 * cos(encL_cube_)) * 0.380)/2.4);
+	// offset_pitch = atan2(((-ob*sin(0)*0.45) - (oc * sin(0*0.2)) - (od * sin(0 * 0.380)) - (od * sin(0) + 0.09 * sin(encL_cube_)) * 0.500)/(2.4),((ob*cos(0)*0.45) + (oc * cos(0*0.2)) + (od * cos(0 * 0.380)) + (od * cos(0) + 0.09 * cos(encL_cube_)) * 0.500)/2.4);
 	
 	// offset_pitch = atan2(((0.09*0.380*sin(encL_cube_))/(0.790+0.380+0.380)),(((0.1*0.380)+((0.09*cos(encL_cube_)+0.1)*0.380))/(0.790+0.380+0.380)));
 
@@ -177,6 +211,8 @@ void PID::run()
 		vel1_enc = (enc1_g - enc1_old_)/dt;
 		vel2_enc = (enc2_g - enc2_old_)/dt;
 
+		
+
 		// vel1_enc = (1 - a) * vel1_old_ + (a * vel1_enc);
 		// vel2_enc = (1 - a) * vel2_old_ + (a * vel2_enc);
 
@@ -190,6 +226,7 @@ void PID::run()
 		// posizine/velocità assoluta ruote
 		pos1 = euler_(1) + enc1_g;
 		pos2 = euler_(1) - enc2_g;
+
 
 		vel1 = gyro_(1) + vel1_enc;
 		vel2 = gyro_(1) - vel2_enc;
@@ -232,17 +269,21 @@ void PID::run()
 		// prova_ += kd_v_ * (pos_rif_ - pos) * dt;
 
 		PID_v = P_v + I_v + D_v ;
+		// std::cout<<"vel1_enc:"<<PID_v<<std::endl;
 
 		PID_v_der = (PID_v - PID_v_old)/dt;
 		PID_v_old = PID_v;
 
-		P = kp_ * (PID_v - euler_(1) - offset_pitch);
-		if((P * sgn(P)) <= th)
-		{
-			P = th * sgn(P);
-		}
+		P = kp_ * (PID_v - euler_(1) + offset_pitch);
+		// if((P * sgn(P)) <= th)
+		// {
+		// 	P = th * sgn(P);
+		// }
 
-		I += ki_ *(PID_v - euler_(1) - offset_pitch) / 200;
+
+		
+		I += ki_ *(PID_v - euler_(1) + offset_pitch) / 200;
+		
 
 		if((I * sgn(I)) >=100)
 		{
@@ -252,7 +293,10 @@ void PID::run()
 
 		D = kd_ * (PID_v_der-gyro_(1));
 
-		Pid = P + I + D;
+		// Pid = P + I + D;
+		Pid = sgn(P + I + D)*27 + (P + I + D);
+		 // std::cout<<"Pid:"<<Pid<<std::endl;
+
 
 
 		yaw_rif_ += w_rif_ * dt;
@@ -278,7 +322,7 @@ void PID::run()
 		// D = kd_ * (-gyro_(1));
 
 		// Pid = P + I + D;
-
+		
 		// non combacia con  l'articolo perchè i motori hanno direzioni differenti
 		com_R = Pid + PID_w;
 		com_L = -Pid + PID_w;
@@ -310,6 +354,9 @@ void PID::run()
 		m1_cube_ = th_eq_ + th_pr_;
 		m2_cube_ = th_eq_ - th_pr_;
 
+		m1_cube1_ = th_eq1_ + th_pr1_;
+		m2_cube1_ = th_eq1_ - th_pr1_;
+
 		 
 
 		
@@ -319,17 +366,24 @@ void PID::run()
 		//comando ruote
 		comm_pub_.p_1.push_back(com_R);
 		comm_pub_.p_2.push_back(com_L);
-		//comando cubo
-		comm_pub_.p_1.push_back(m1_cube_);
-		comm_pub_.p_2.push_back(m2_cube_);
+		// std::cout<<"com_R:"<<com_R<<std::endl;
+		
+
+		// //secondo cubo
+		// comm_pub_.p_1.push_back(m1_cube1_);
+		// comm_pub_.p_2.push_back(m2_cube1_);
+
+		// //comando cubo
+		// comm_pub_.p_1.push_back(m1_cube_);
+		// comm_pub_.p_2.push_back(m2_cube_);
 
 
 		pub_comm_.publish(comm_pub_);
 
-		// vel_pub.x = offset_pitch;
+		vel_pub.x = offset_pitch;
 		// vel_pub.y = th_pr_;
 
-		// pub_vel_.publish(vel_pub);
+		pub_vel_.publish(vel_pub);
 		// std::cout<<"P:"<< P<<" "<<"I:"<< I<< " "<<"D:"<< D<< std::endl;
 		// std::cout<<"enc1_:"<< enc1_g<<"   "<<"enc2_:"<< enc2_g<< std::endl;
 

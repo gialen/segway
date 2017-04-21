@@ -45,7 +45,7 @@ private:
   void callback_comm(const geometry_msgs::Vector3::ConstPtr& msg);
   // void callback_gain_PID_w(const geometry_msgs::Vector3::ConstPtr& msg);
   // void callback_cube(const geometry_msgs::Vector3::ConstPtr& msg);
-  // void callback_myo(const sensor_msgs::Imu::ConstPtr& msg);
+  void callback_myo(const sensor_msgs::Imu::ConstPtr& msg);
 
   // void callback_imu_acc(const qb_interface::inertialSensorArray::ConstPtr& msg);
   // void callback_imu_gyro(const qb_interface::inertialSensorArray::ConstPtr& msg);
@@ -70,4 +70,6 @@ private:
   double th_eq_, th_pr_, m1_cube_, m2_cube_, encL_cube_;
   ros::NodeHandle n_;
   double com_R, com_L;
+  double prova_, prova_old_;
+
 };//End of class SubscribeAndPublish
